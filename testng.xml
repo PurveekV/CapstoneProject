@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "hƩps://testng.org/testng-1.0.dtd">
+<suite name="Practo Test Suite" thread-count="4">
+    <listeners>
+        <listener class-name="com.tests.practo.TestListener"/>
+    </listeners>
+
+
+</suite>
