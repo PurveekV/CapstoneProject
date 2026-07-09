@@ -41,6 +41,9 @@ public class HomePage {
     @FindBy(css = "a[event='Nav Provider Marketing:Interacted:Plus Corporate']")
     WebElement healthWellnessButton;
 
+    @FindBy(css = "[title='tests']")
+    WebElement labTestsButton;
+
     // ================= Hospital Names ==================
 
     @FindBy(css = ".c-omni-suggestion-item__content__title .c-omni-suggestion-item__right ")
@@ -63,6 +66,13 @@ public class HomePage {
         healthWellnessButton.click();
 
     }
+
+    public void goToDiagnosticsPage(){
+        wait.until(ExpectedConditions.elementToBeClickable(labTestsButton));
+        labTestsButton.click();
+
+    }
+
     public boolean isDisplayed() {
         return pageTitle.isDisplayed();
     }

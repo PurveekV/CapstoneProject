@@ -38,7 +38,7 @@ public class CorporateFormPage {
     @FindBy(xpath = "//button[@type='submit' and contains(text(), 'Schedule a demo')]")
     private WebElement scheduleDemoButton;
 
-    @FindBy(css = "u-text--bold.text-alpha")
+    @FindBy(css = ".u-text--bold.text-alpha")
     private WebElement thankYouMessage;
 
     // --- Action Method ---
