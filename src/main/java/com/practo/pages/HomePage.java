@@ -6,7 +6,6 @@ import java.util.List;
 
 import com.practo.utils.DriverFactory;
 import org.openqa.selenium.*;
-import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -15,7 +14,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 public class HomePage {
 
     private WebDriver driver;
-    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    private WebDriverWait wait;
 
 
 
@@ -33,36 +32,37 @@ public class HomePage {
     @FindBy(xpath = "//div[contains(text(),'Hospital')]")
     WebElement hospitalSuggestion;
 
-    // ================== Filters ===================
-
-    @FindBy(xpath = "//span[contains(text(),'All Filters')]")
-    WebElement allFilters;
-
-    @FindBy(xpath = "//label[contains(.,'Open 24 Hours')]")
-    WebElement open24Hours;
-
-    @FindBy(xpath = "//label[contains(.,'Parking')]")
-    WebElement parkingFacility;
-
-    @FindBy(xpath = "//label[contains(.,'Above 3.5')]")
-    WebElement ratingAbove35;
-
-    @FindBy(xpath = "//button[contains(text(),'Apply')]")
-    WebElement applyButton;
-
     @FindBy(className = "practo_logo_new")
     WebElement pageTitle;
 
+    @FindBy(css = ".downarrow.icon-ic_down_cheveron")
+    WebElement corporatePlanButton;
+
+    @FindBy(css = "a[event='Nav Provider Marketing:Interacted:Plus Corporate']")
+    WebElement healthWellnessButton;
+
     // ================= Hospital Names ==================
 
-    @FindBy(xpath = "//h2[contains(@data-qa-id,'hospital_name')]")
-    List<WebElement> hospitalNames;
+    @FindBy(css = ".c-omni-suggestion-item__content__title .c-omni-suggestion-item__right ")
+    private List<WebElement> hospitalNames;
+
+    // Locates the entire container card for each hospital result
+    @FindBy(xpath = "//div[@class= 'c-estb-card']")
+    private List<WebElement> hospitalCards;
 
     public HomePage() {
         this.driver = DriverFactory.getDriver();
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         PageFactory.initElements(driver, this);
     }
 
+    public void goToCoporatePage(){
+        wait.until(ExpectedConditions.elementToBeClickable(corporatePlanButton));
+        corporatePlanButton.click();
+        wait.until(ExpectedConditions.elementToBeClickable(healthWellnessButton));
+        healthWellnessButton.click();
+
+    }
     public boolean isDisplayed() {
         return pageTitle.isDisplayed();
     }
@@ -79,18 +79,72 @@ public class HomePage {
         bangaloreSuggestion.click();
     }
 
-    public void searchHospital(String keyword){
+    public void searchHospital(String keyword) {
+        // 1. Standard search flow
         wait.until(ExpectedConditions.visibilityOf(searchBox));
+        searchBox.click();
         searchBox.clear();
         searchBox.sendKeys(keyword);
-        wait.until(ExpectedConditions.visibilityOf(hospitalSuggestion));
-        hospitalSuggestion.click();
+
+        // 2. Normalize inputs for the XPath criteria
+        // If you pass "Hospital", expectedTitle is "Hospital".
+        // We can hardcode "TYPE" or convert it dynamically depending on what Practo expects.
+        String expectedTitle = keyword;
+        String expectedTag = "TYPE"; // Handled internally by the backend code
+
+        // 3. Dynamic XPath matching the data-qa-id markers
+        String dynamicXPath = String.format(
+                "//div[contains(@class, 'c-omni-suggestion-item') and .//div[@data-qa-id='omni-suggestion-main' and text()='%s'] and .//span[@data-qa-id='omni-suggestion-right' and text()='%s']]",
+                expectedTitle, expectedTag
+        );
+
+        // 4. Locate and click
+        WebElement matchingSuggestion = wait.until(
+                ExpectedConditions.elementToBeClickable(By.xpath(dynamicXPath))
+        );
+        matchingSuggestion.click();
     }
 
     //2. Apply fitlers
-    public void applyFitlers(){
+    public List<String> getFilteredHospitals() {
+        List<String> matchingHospitals = new ArrayList<>();
 
+        for (WebElement card : hospitalCards) {
+            try {
+                // 1. Extract Hospital Name
+                String hospitalName = card.findElement(By.cssSelector("h2.line-1")).getText().trim();
+
+                // 2. Extract and Parse Hospital Rating (e.g., "4.5")
+                double hospitalRating = 0.0;
+                try {
+                    String ratingText = card.findElement(By.cssSelector("div.c-feedback span.u-bold")).getText().trim();
+                    hospitalRating = Double.parseDouble(ratingText);
+                } catch (NoSuchElementException e) {
+                    // If a hospital has no ratings, default to 0.0
+                    hospitalRating = 0.0;
+                }
+
+                // 3. Check Timing Info (Looking for "Open 24x7")
+                boolean isOpen247 = false;
+                try {
+                    String timingText = card.findElement(By.cssSelector("span.pd-right-2px-text-green")).getText().trim();
+                    if (timingText.equalsIgnoreCase("Open 24x7")) {
+                        isOpen247 = true;
+                    }
+                } catch (NoSuchElementException e) {
+                    isOpen247 = false;
+                }
+                if (hospitalRating > 3.5 && isOpen247) {
+                    matchingHospitals.add(hospitalName);
+                }} catch (Exception e) {
+                // Safe fallback to skip malformed components or clean ad cards
+                continue;
+            }
+        }
+
+        return matchingHospitals;
     }
+
 
     //3. Get list of hospital names
     //4. Print out the names
