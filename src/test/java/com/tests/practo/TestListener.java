@@ -2,6 +2,7 @@
 package com.tests.practo;
 
 import com.aventstack.extentreports.ExtentReports;
+import io.qameta.allure.Attachment;
 import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.Status;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
@@ -25,6 +26,16 @@ public class TestListener implements ITestListener, ISuiteListener {
     static ExtentReports extent;
     // Declares a ThreadLocal wrapper for ExtentTest to ensure thread-safety during parallel test execution
     private static final ThreadLocal<ExtentTest> testNode = new ThreadLocal<>();
+
+    @Attachment(value = "{attachmentName}", type = "image/png")
+    public byte[] saveAllureScreenshot(String attachmentName) {
+        WebDriver driver = DriverFactory.getDriver();
+        if (driver != null) {
+            // Returns raw bytes which Allure intercepts and renders as a PNG in the report dashboard
+            return ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+        }
+        return new byte[0];
+    }
 
     @Override
     public void onStart(ISuite suite) {
@@ -66,6 +77,17 @@ public class TestListener implements ITestListener, ISuiteListener {
     public void onTestSuccess(ITestResult result) {
         // Retrieves the active thread's ExtentTest instance and logs a positive "pass" status message
         testNode.get().pass("Test passed successfully.");
+
+        if (result.getName().equals("enterInvalidFormDetails_shouldDisplayError")) {
+
+            System.out.println(">>> Target test detected! Capturing success evidence screenshots...");
+
+            // Attach to Extent Report
+            attachBase64Screenshot("Success Evidence - Red Highlight Rendered");
+
+            // Save to disk and attach to Allure Report
+            saveFileAndAttachToAllure(result);
+        }
     } // Closes the onTestSuccess method
 
     @Override
@@ -90,6 +112,29 @@ public class TestListener implements ITestListener, ISuiteListener {
     // ==========================================
     // Screenshot Utilities
     // ==========================================
+
+    private void saveFileAndAttachToAllure(ITestResult result) {
+        WebDriver driver = DriverFactory.getDriver();
+        if (driver == null) return;
+
+        try {
+            File source = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            Path directory = Paths.get("target", "screenshots");
+            Files.createDirectories(directory);
+
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            Path destination = directory.resolve(result.getName() + "_" + timestamp + ".png");
+            Files.copy(source.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
+
+            System.out.println("Screenshot backup saved: " + destination.toAbsolutePath());
+
+            // Call the Allure utility to embed it cleanly into your Allure Report tree
+            saveAllureScreenshot(result.getName() + " - Success Evidence Image");
+
+        } catch (IOException e) {
+            System.err.println("Could not save screenshot disk backup: " + e.getMessage());
+        }
+    }
 
     // Declares a private helper method to capture a screenshot and convert it into a Base64 text string
     private void attachBase64Screenshot(String title) {

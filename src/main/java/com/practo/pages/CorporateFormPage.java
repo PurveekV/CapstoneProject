@@ -1,7 +1,8 @@
 package com.practo.pages;
 
 import com.practo.utils.DriverFactory;
-import org.openqa.selenium.By;
+import lombok.Getter;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -35,41 +36,83 @@ public class CorporateFormPage {
     @FindBy(id = "interestedIn") // Replace with actual ID/Xpath
     private WebElement interestedIn;
 
+
+    @Getter
     @FindBy(xpath = "//button[@type='submit' and contains(text(), 'Schedule a demo')]")
     private WebElement scheduleDemoButton;
 
     @FindBy(css = ".u-text--bold.text-alpha")
     private WebElement thankYouMessage;
 
+    @FindBy(css = ".corporate-form__input.corporate-form__input--error")
+    private WebElement redErrorAlert;
+
     // --- Action Method ---
-    public void fillAndSubmitForm(String name, String company, String email, String phone, String sizeText, String cityName) {
-        wait.until(ExpectedConditions.visibilityOf(nameField));
+    public void fillAndSubmitForm(String name, String company, String email, String phone, String companySize, String reason) {
 
-        nameField.sendKeys(name);
-        companyField.sendKeys(company);
-        emailField.sendKeys(email);
-        phoneField.sendKeys(phone);
+        try {
+            wait.until(ExpectedConditions.visibilityOf(nameField));
 
-        // Handling Dropdown 1: Company Size
-        Select selectSize = new Select(organizationSize);
-        selectSize.selectByVisibleText(sizeText); // e.g., "100-500 employees"
+            nameField.sendKeys(name);
+            companyField.sendKeys(company);
+            emailField.sendKeys(email);
+            phoneField.sendKeys(phone);
 
-        // Handling Dropdown 2: City
-        Select selectCity = new Select(interestedIn);
-        selectCity.selectByVisibleText(cityName); // e.g., "Bangalore"
+            // Handling Dropdown 1: Company Size
+            Select selectSize = new Select(organizationSize);
+            selectSize.selectByVisibleText(companySize); // e.g., "100-500 employees"
 
-        wait.until(ExpectedConditions.elementToBeClickable(scheduleDemoButton));
-        scheduleDemoButton.click();
+            // Handling Dropdown 2: City
+            Select selectInterestedIn = new Select(interestedIn);
+            selectInterestedIn.selectByVisibleText(reason);
+
+            wait.until(ExpectedConditions.elementToBeClickable(scheduleDemoButton));
+            scheduleDemoButton.click();
+        } catch (TimeoutException e) {
+            System.out.println("Error occurred while filling and submitting the form: " + e.getMessage());
+        }
+    }
+
+    public void fillInvalidForm(String name, String company, String email, String phone, String companySize, String reason) {
+
+        try {
+            wait.until(ExpectedConditions.visibilityOf(nameField));
+
+            nameField.sendKeys(name);
+            companyField.sendKeys(company);
+            emailField.sendKeys(email);
+            phoneField.sendKeys(phone);
+
+            // Handling Dropdown 1: Company Size
+            Select selectSize = new Select(organizationSize);
+            selectSize.selectByVisibleText(companySize); // e.g., "100-500 employees"
+
+            // Handling Dropdown 2: City
+            Select selectInterestedIn = new Select(interestedIn);
+            selectInterestedIn.selectByVisibleText(reason);
+
+        } catch (TimeoutException e) {
+            System.out.println("Error occurred while filling and submitting the form: " + e.getMessage());
+        }
     }
 
     public boolean confirmMessage(){
 
         try{
-            WebDriverWait manualwaitCaptcha = new WebDriverWait(driver, Duration.ofSeconds(10));
-            wait.until(ExpectedConditions.visibilityOf( thankYouMessage));
+            WebDriverWait manualCaptcha = new WebDriverWait(driver, Duration.ofSeconds(10));
+            manualCaptcha.until(ExpectedConditions.visibilityOf( thankYouMessage));
             return  thankYouMessage.isDisplayed();
-        } catch (org.openqa.selenium.NoSuchElementException e) {
+        } catch (org.openqa.selenium.TimeoutException e) {
             return false;
         }
     }
+
+    public boolean alertBox(){
+
+        try{
+            return redErrorAlert.isDisplayed();
+        } catch (org.openqa.selenium.NoSuchElementException e){
+            return false;}
+    }
+
 }
