@@ -2,6 +2,7 @@ package com.practo.pages;
 
 import com.practo.utils.DriverFactory;
 import lombok.Getter;
+import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -37,11 +38,10 @@ public class CorporateFormPage {
     private WebElement interestedIn;
 
 
-    @Getter
     @FindBy(xpath = "//button[@type='submit' and contains(text(), 'Schedule a demo')]")
     private WebElement scheduleDemoButton;
 
-    @FindBy(css = ".u-text--bold.text-alpha")
+    @FindBy(css = "div[aria-label='Thank you']")
     private WebElement thankYouMessage;
 
     @FindBy(css = ".corporate-form__input.corporate-form__input--error")
@@ -96,13 +96,20 @@ public class CorporateFormPage {
         }
     }
 
-    public boolean confirmMessage(){
+    public boolean confirmMessage() {
+        try {
+            // Give the React modal up to 10 seconds to fully inject and render in the DOM
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        try{
-            WebDriverWait manualCaptcha = new WebDriverWait(driver, Duration.ofSeconds(10));
-            manualCaptcha.until(ExpectedConditions.visibilityOf( thankYouMessage));
-            return  thankYouMessage.isDisplayed();
+            // Target the modal container explicitly using its ARIA role/label attributes
+            By modalLocator = By.cssSelector("div[aria-label='Thank you'], .ReactModal__Content");
+
+            WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(modalLocator));
+            System.out.println("   Verified React modal visibility: " + modal.getAttribute("aria-label"));
+
+            return modal.isDisplayed();
         } catch (org.openqa.selenium.TimeoutException e) {
+            System.out.println("   ❌ React modal did not appear or render within 10 seconds.");
             return false;
         }
     }
@@ -115,4 +122,7 @@ public class CorporateFormPage {
             return false;}
     }
 
+    public WebElement getScheduleButton(){
+        return scheduleDemoButton;
+    }
 }

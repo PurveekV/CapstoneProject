@@ -31,8 +31,10 @@ public class HospitalFinder extends BaseTest { // Fixed inheritance
         homePage.searchCity("Bangalore");
         homePage.searchHospital("Hospital");
 
-        List<String> filters = homePage.getFilteredHospitals();
-        System.out.println(filters);
+        System.out.println("Current URL after search: " + DriverFactory.getDriver().getCurrentUrl());
+
+        List<String> filteredHospitalsList = homePage.getFilteredHospitals();
+        System.out.println("The hospitals with parking, rating > 3.5, and open 24/7 are: "+filteredHospitalsList);
 
     }
 

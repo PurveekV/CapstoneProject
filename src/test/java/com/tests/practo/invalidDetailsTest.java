@@ -38,7 +38,7 @@ public class invalidDetailsTest extends BaseTest{
         formPage.fillInvalidForm("Tom","Jobs ltd", "tom@exmaple.com","123456789", "<500", "Taking a demo"); //The phone number does not compile to the requirements of the form
         Assert.assertTrue(formPage.alertBox(), "BUG: The alert box has not appeared");
 
-        WebElement submitBtn = formPage.getScheduleDemoButton();
+        WebElement submitBtn = formPage.getScheduleButton();
         WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(5));
         boolean isBtnDisabled = shortWait.until(ExpectedConditions.attributeToBeNotEmpty(submitBtn, "disabled"));
 

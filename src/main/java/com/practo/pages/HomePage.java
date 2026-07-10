@@ -44,6 +44,12 @@ public class HomePage {
     @FindBy(css = "[title='tests']")
     WebElement labTestsButton;
 
+    @FindBy(id = "read_more_info")
+    WebElement clickReadMore;
+
+
+
+
     // ================= Hospital Names ==================
 
     @FindBy(css = ".c-omni-suggestion-item__content__title .c-omni-suggestion-item__right ")
@@ -96,9 +102,6 @@ public class HomePage {
         searchBox.clear();
         searchBox.sendKeys(keyword);
 
-        // 2. Normalize inputs for the XPath criteria
-        // If you pass "Hospital", expectedTitle is "Hospital".
-        // We can hardcode "TYPE" or convert it dynamically depending on what Practo expects.
         String expectedTitle = keyword;
         String expectedTag = "TYPE"; // Handled internally by the backend code
 
@@ -115,14 +118,28 @@ public class HomePage {
         matchingSuggestion.click();
     }
 
-    //2. Apply fitlers
+    //2. Apply filters (Including 24/7, Rating > 3.5, and Multi-Tab Parking Validation)
     public List<String> getFilteredHospitals() {
+        WebDriverWait pageWait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // 1. Explicitly wait for the cards to load in the DOM
+        pageWait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.xpath("//div[@class='c-estb-card']")));
+
         List<String> matchingHospitals = new ArrayList<>();
+        String mainTab = driver.getWindowHandle();
 
         for (WebElement card : hospitalCards) {
+            // Stop looking completely once we have successfully captured our first 10 matches
+            if (matchingHospitals.size() >= 10) {
+                System.out.println("🎯 Reached target limit of 10 qualified hospitals. Stopping search loop.");
+                break;
+            }
+
+            String hospitalName = "unknown";
             try {
                 // 1. Extract Hospital Name
-                String hospitalName = card.findElement(By.cssSelector("h2.line-1")).getText().trim();
+                WebElement titleElement = card.findElement(By.cssSelector("h2.line-1"));
+                hospitalName = titleElement.getText().trim();
 
                 // 2. Extract and Parse Hospital Rating (e.g., "4.5")
                 double hospitalRating = 0.0;
@@ -130,28 +147,127 @@ public class HomePage {
                     String ratingText = card.findElement(By.cssSelector("div.c-feedback span.u-bold")).getText().trim();
                     hospitalRating = Double.parseDouble(ratingText);
                 } catch (NoSuchElementException e) {
-                    // If a hospital has no ratings, default to 0.0
                     hospitalRating = 0.0;
+                    System.out.println("Could not find rating for: " + hospitalName);
                 }
 
-                // 3. Check Timing Info (Looking for "Open 24x7")
+                // 3. Check Timing Info (Flexible matching pattern)
                 boolean isOpen247 = false;
                 try {
-                    String timingText = card.findElement(By.cssSelector("span.pd-right-2px-text-green")).getText().trim();
-                    if (timingText.equalsIgnoreCase("Open 24x7")) {
+                    String timingText = card.findElement(By.cssSelector("span.pd-right-2px-text-green")).getText().trim().toLowerCase();
+                    if (timingText.contains("24x7") || timingText.contains("24 hours") || timingText.contains("open 24")) {
                         isOpen247 = true;
                     }
                 } catch (NoSuchElementException e) {
                     isOpen247 = false;
+                    System.out.println("Could not find timing info for: " + hospitalName);
                 }
+
+                // 4. If basic criteria pass, open detail view to check for Parking
                 if (hospitalRating > 3.5 && isOpen247) {
-                    matchingHospitals.add(hospitalName);
-                }} catch (Exception e) {
-                // Safe fallback to skip malformed components or clean ad cards
+                    System.out.println("⏳ " + hospitalName + " passed Gate 1. Opening tab to verify parking description...");
+
+                    WebElement linkElement = card.findElement(By.cssSelector("a[href*='/hospital/']"));
+                    String targetUrl = linkElement.getAttribute("href");
+
+                    // Open the tab via JavaScript
+                    JavascriptExecutor js = (JavascriptExecutor) driver;
+                    js.executeScript("window.open(arguments[0], '_blank');", targetUrl);
+
+                    // 1. Wait for the new tab to be recognized
+                    pageWait.until(ExpectedConditions.numberOfWindowsToBe(2));
+
+                    // 2. BULLETPROOF TAB SWITCH: Always grab the absolute newest handle
+                    List<String> handles = new ArrayList<>(driver.getWindowHandles());
+                    String newTabHandle = handles.get(handles.size() - 1); // The last one opened
+                    driver.switchTo().window(newTabHandle);
+
+                    // =================== TWIN-STRATEGY COOKIE BYPASS BLOCK ===================
+                    try {
+                        WebDriverWait popupWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+
+                        // STRATEGY A: Try clicking it directly in the root page DOM (No Iframe)
+                        try {
+                            WebElement consentBtn = popupWait.until(ExpectedConditions.elementToBeClickable(
+                                    By.cssSelector("button.fc-cta-consent.fc-primary-button")
+                            ));
+                            js.executeScript("arguments[0].click();", consentBtn);
+                            System.out.println("   Cookie consent overlay bypassed directly in main DOM.");
+                        }
+                        // STRATEGY B: Fallback to Iframe context if Strategy A fails
+                        catch (TimeoutException e) {
+                            popupWait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(
+                                    By.cssSelector("iframe[title*='consent'], iframe[id*='googlefc'], iframe[src*='fundingchoices'], iframe.googlefc-iframe")
+                            ));
+                            WebElement iframeConsentBtn = popupWait.until(ExpectedConditions.elementToBeClickable(
+                                    By.cssSelector("button.fc-cta-consent.fc-primary-button")
+                            ));
+                            js.executeScript("arguments[0].click();", iframeConsentBtn);
+                            System.out.println("   Cookie consent overlay bypassed inside iframe container.");
+                            driver.switchTo().defaultContent(); // Escape iframe back to root document
+                        }
+                    } catch (Exception e) {
+                        // Safe fallback cleanup to keep execution context clear
+                        driver.switchTo().defaultContent();
+                        System.out.println("   Cookie banner notice not visible or already absent.");
+                    }
+                    // =========================================================================
+
+                    boolean hasParking = false;
+                    try {
+                        WebDriverWait tabWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
+                        // 3. Dynamic "Read More" check specific to this child window DOM
+                        By readMoreLocator = By.cssSelector("[data-qa-id='read_more_info']");
+
+                        try {
+                            WebElement tabReadMore = tabWait.until(ExpectedConditions.elementToBeClickable(readMoreLocator));
+                            js.executeScript("arguments[0].click();", tabReadMore);
+                            System.out.println("   Clicked 'Read More' to expand description text.");
+                        } catch (TimeoutException e) {
+                            System.out.println("   No 'Read More' button present (text already fully expanded).");
+                        }
+
+                        // 4. Scan the text elements now that the panel is open
+                        By detailsLocator = By.cssSelector("[data-qa-id='amenity_item'], .p-entity__item, .c-description__text, .c-amenities__item");
+                        List<WebElement> detailsElements = tabWait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(detailsLocator));
+
+                        for (WebElement element : detailsElements) {
+                            String text = element.getText().toLowerCase().trim();
+                            if (text.contains("parking") || text.contains("valet")) {
+                                hasParking = true;
+                                break;
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        System.out.println("   ❌ Error checking expanded layout details for: " + hospitalName);
+                    }
+
+                    // 5. CRITICAL: Destroy the child tab and bring driver context back to the master list
+                    driver.close();
+                    driver.switchTo().window(mainTab);
+
+                    if (hasParking) {
+                        matchingHospitals.add(hospitalName);
+                        System.out.println("✅ SUCCESS MATCH (" + matchingHospitals.size() + "/10): " + hospitalName);
+                    }
+                }
+
+
+            } catch (Exception e) {
+                // Safeguard against missing structural attributes or shadow components
+                System.out.println(" 🛑 Skipped card [" + hospitalName + "] due to error: " + e.toString());
+                e.printStackTrace();
+
+                // Clean up tab safety net if error happens while focus is still stuck on a detail tab
+                if (driver.getWindowHandles().size() > 1) {
+                    driver.close();
+                    driver.switchTo().window(mainTab);
+                }
                 continue;
             }
         }
-
         return matchingHospitals;
     }
 

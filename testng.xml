@@ -1,8 +1,25 @@
-<!DOCTYPE suite SYSTEM "hƩps://testng.org/testng-1.0.dtd">
-<suite name="Practo Test Suite" thread-count="4">
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Practo Test Suite" parallel="classes" thread-count="4">
     <listeners>
         <listener class-name="com.tests.practo.TestListener"/>
     </listeners>
 
+    <test name="Hospital Search Test">
+            <classes>
+                <class name="com.tests.practo.HospitalFinder"/>
+            </classes>
+    </test>
+
+    <test name="Top cities in Diagnostic Page Test">
+        <classes>
+            <class name="com.tests.practo.DiagnosticPageTest"/>
+        </classes>
+    </test>
+
+    <test name="Invalid Form Details Test">
+        <classes>
+            <class name="com.tests.practo.invalidDetailsTest"/>
+        </classes>
+    </test>
 
 </suite>
