@@ -27,9 +27,17 @@ public class DiagnosticPageTest extends BaseTest {
     }
 
     @Test
+    public void diagnosticPageIsLoaded(){
+    logger.info("Checks to see if diagnostic page is loaded");
+    Assert.assertTrue(DriverFactory.getDriver().getTitle().contains("Blood Tests | Book Diagnostic Tests from Home at Best Prices | Practo"));
+    }
+
+    @Test
     public void diagnosticPage_shouldReturnTopCities_storeInList_displayList(){
+        logger.info("Starting diagnostic page test...");
         DiagnosticPage diagnosticPage = new DiagnosticPage();
 
+        logger.info("Checking to see if diagnostic page displays the top cities");
         if (!diagnosticPage.viewTopCities()){
             diagnosticPage.openTopCitiesWrapper();
         }
