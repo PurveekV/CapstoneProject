@@ -22,7 +22,6 @@ public class DiagnosticPageTest extends BaseTest {
 
     @BeforeMethod
     public void setup(){
-        DriverFactory.createDriver("chrome", false);
 
         String url = ConfigReader.getProperty("baseUrl");
         DriverFactory.getDriver().get(url);
@@ -66,14 +65,6 @@ public class DiagnosticPageTest extends BaseTest {
         Assert.assertTrue(topCities.contains("Kolkata"), "List does not contain Kolkata");
         Assert.assertTrue(topCities.contains("Pune"), "List does not contain Pune");
         Assert.assertTrue(topCities.contains("Ahmedabad"), "List does not contain Ahmedabad");
-
-    }
-
-    @AfterMethod
-    public void tearDown() throws InterruptedException {
-        Thread.sleep(1000);
-        DriverFactory.quitDriver();
-
 
     }
 

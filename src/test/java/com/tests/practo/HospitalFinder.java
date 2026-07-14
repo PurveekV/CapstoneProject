@@ -19,7 +19,6 @@ public class HospitalFinder extends BaseTest { // Fixed inheritance
 
     @BeforeMethod
     public void setup(){
-        DriverFactory.createDriver("chrome", false);
 
         String url = ConfigReader.getProperty("baseUrl");
         DriverFactory.getDriver().get(url);
@@ -49,10 +48,4 @@ public class HospitalFinder extends BaseTest { // Fixed inheritance
         );
     }
 
-
-    @AfterMethod
-    public void tearDown() throws InterruptedException{
-        Thread.sleep(1000);
-        DriverFactory.quitDriver();
-    }
 }

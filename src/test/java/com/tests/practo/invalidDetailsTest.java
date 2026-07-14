@@ -26,7 +26,6 @@ public class invalidDetailsTest extends BaseTest{
 
     @BeforeMethod
     public void setup(){
-        DriverFactory.createDriver("chrome", false);
 
         String url = ConfigReader.getProperty("baseUrl");
         DriverFactory.getDriver().get(url);
@@ -44,7 +43,7 @@ public class invalidDetailsTest extends BaseTest{
         Assert.assertTrue(formPage.alertBox(), "BUG: The alert box has not appeared");
 
         WebElement submitBtn = formPage.getScheduleButton();
-        WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait shortWait = new WebDriverWait(DriverFactory.getDriver(), Duration.ofSeconds(5));
         boolean isBtnDisabled = shortWait.until(ExpectedConditions.attributeToBeNotEmpty(submitBtn, "disabled"));
 
         Assert.assertNotNull(isBtnDisabled, "BUG: The schedule demo button is still enabled/clickable despite invalid details!");
@@ -74,9 +73,4 @@ public class invalidDetailsTest extends BaseTest{
         System.out.print("Confirmed that thank you message pops up");
     }
 
-    @AfterMethod
-    public void tearDown() throws InterruptedException {
-        Thread.sleep(1000);
-        DriverFactory.quitDriver();
-    }
 }

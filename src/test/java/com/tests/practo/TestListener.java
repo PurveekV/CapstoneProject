@@ -50,7 +50,12 @@ public class TestListener implements ITestListener, ISuiteListener {
 
     @Override
     public void onTestStart(ITestResult result) {
-        ExtentTest test = extent.createTest(result.getMethod().getMethodName());
+        String browser = result.getTestContext().getCurrentXmlTest()
+                .getParameter("browser");
+
+        ExtentTest test = extent.createTest(
+                result.getMethod().getMethodName()
+                        + " [" + browser + "]");
         testNode.set(test);
 
         // Dynamic description assignment inside Allure
@@ -105,17 +110,6 @@ public class TestListener implements ITestListener, ISuiteListener {
     // Screenshot Utilities
     // ==========================================
 
-    /**
-     * Captures and streams screenshot byte context directly to Allure attachments index.
-     */
-    @Attachment(value = "{attachmentName}", type = "image/png")
-    public byte[] captureAllureScreenshot(String attachmentName) {
-        WebDriver driver = DriverFactory.getDriver();
-        if (driver != null) {
-            return ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
-        }
-        return new byte[0];
-    }
 
     private void attachBase64Screenshot(String title) {
         WebDriver driver = DriverFactory.getDriver();
