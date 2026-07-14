@@ -1,9 +1,12 @@
 package com.tests.practo;
 
+import com.aventstack.extentreports.ExtentReports;
+import com.aventstack.extentreports.ExtentTest;
 import com.practo.pages.HomePage;
 import com.practo.utils.ConfigReader;
 import com.practo.pages.DiagnosticPage;
 import com.practo.utils.DriverFactory;
+import io.qameta.allure.Allure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
@@ -15,6 +18,7 @@ import java.util.List;
 
 public class DiagnosticPageTest extends BaseTest {
     private static final Logger logger = LogManager.getLogger(DiagnosticPageTest.class);
+
 
     @BeforeMethod
     public void setup(){
@@ -29,6 +33,8 @@ public class DiagnosticPageTest extends BaseTest {
     @Test
     public void diagnosticPageIsLoaded(){
     logger.info("Checks to see if diagnostic page is loaded");
+        getExtentTest().info("The diagnostic page is loaded");
+        Allure.description("The diagnostic page is loaded");
     Assert.assertTrue(DriverFactory.getDriver().getTitle().contains("Blood Tests | Book Diagnostic Tests from Home at Best Prices | Practo"));
     }
 
@@ -43,6 +49,12 @@ public class DiagnosticPageTest extends BaseTest {
         }
 
         List<String> topCities = diagnosticPage.getAllTopCities();
+        getExtentTest().info("Top Cities from Diagnostic Page: " + topCities);
+        Allure.addAttachment(
+                "Top Cities from Diagnostic Page",
+                String.join("\n", topCities)
+        );
+
         System.out.println("Top Cities from UI: " + topCities);
 
         Assert.assertFalse(topCities.isEmpty(), "The topCities list came back empty");

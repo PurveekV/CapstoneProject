@@ -25,6 +25,10 @@ public class TestListener implements ITestListener, ISuiteListener {
     static ExtentReports extent;
     private static final ThreadLocal<ExtentTest> testNode = new ThreadLocal<>();
 
+    public static ExtentTest getTest() {
+        return testNode.get();
+    }
+
     @Override
     public void onStart(ISuite suite) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
